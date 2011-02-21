@@ -22,6 +22,9 @@ require 'midiator/driver'
 require 'midiator/driver_registry'
 
 class MIDIator::Driver::CoreMIDI < MIDIator::Driver # :nodoc:
+  
+  SNOW_LEOPARD = (`uname -r` =~ /^10\.6/)
+  
   ##########################################################################
   ### S Y S T E M   I N T E R F A C E
   ##########################################################################
@@ -35,7 +38,12 @@ class MIDIator::Driver::CoreMIDI < MIDIator::Driver # :nodoc:
     extern "void* MIDIGetDestination( int )"
     extern "int MIDIOutputPortCreate( void*, void*, void* )"
     extern "void* MIDIPacketListInit( void* )"
-    extern "void* MIDIPacketListAdd( void*, int, void*, int, int, int, void* )"
+    
+    if SNOW_LEOPARD
+      extern "void* MIDIPacketListAdd( void*, int, void*, int, int, void* )"
+    else
+      extern "void* MIDIPacketListAdd( void*, int, void*, int, int, int, void* )"
+    end
     extern "int MIDISend( void*, void*, void* )"
   end
 
@@ -75,7 +83,11 @@ class MIDIator::Driver::CoreMIDI < MIDIator::Driver # :nodoc:
     packet_ptr = C.mIDIPacketListInit( packet_list )
 
     # Pass in two 32-bit 0s for the 64 bit time
-    packet_ptr = C.mIDIPacketListAdd( packet_list, 256, packet_ptr, 0, 0, args.size, bytes )
+    packet_ptr = if SNOW_LEOPARD
+      C.mIDIPacketListAdd( packet_list, 256, packet_ptr, 0, args.size, bytes )
+    else
+      C.mIDIPacketListAdd( packet_list, 256, packet_ptr, 0, 0, args.size, bytes )
+    end
 
     C.mIDISend( @outport, @destination, packet_list )
   end
